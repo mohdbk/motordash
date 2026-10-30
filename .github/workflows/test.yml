@@ -1,0 +1,30 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The Android SDK comes with the runner. No fonts or local.properties needed:
+      # the build falls back to the system font and leaves dev/release settings empty.
+      - name: Unit, launch and screenshot tests
+        run: ./gradlew :app:testDebugUnitTest :app:testReleaseUnitTest :dashboard:testDebugUnitTest
+
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: dashboard/build/screenshots/

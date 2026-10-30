@@ -1,0 +1,16 @@
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+
+# Release signing keys never belong in the repo (see README "Release").
+*.jks
+*.keystore
+
+# Dubai font files: licensed for embedding in the app, not for redistribution as files.
+# Add them locally before building (see README "Fonts"); NOTICE.md stays tracked.
+app/src/main/assets/fonts/Dubai-*

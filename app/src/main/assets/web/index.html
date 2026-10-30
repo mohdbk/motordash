@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>MotorDash</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23111'/><defs><linearGradient id='g' x1='20' y1='80' x2='80' y2='20' gradientUnits='userSpaceOnUse'><stop offset='0' stop-color='%233d8bff'/><stop offset='1' stop-color='%2336d3ff'/></linearGradient></defs><g transform='translate(10 10.4) scale(.8)'><path d='M20.56 75A34 34 0 1 1 79.44 75' fill='none' stroke='url(%23g)' stroke-width='14' stroke-linecap='round'/><path d='M55.66 63.66L71.21 36.79L44.34 52.34Z' fill='%23fff'/><circle cx='50' cy='58' r='10' fill='%23fff'/></g></svg>">
+<style>
+  @font-face { font-family: Dubai; src: url(/fonts/Dubai-Light.woff2) format("woff2"); font-weight: 300; font-display: swap; }
+  @font-face { font-family: Dubai; src: url(/fonts/Dubai-Regular.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: Dubai; src: url(/fonts/Dubai-Medium.woff2) format("woff2"); font-weight: 500; font-display: swap; }
+  @font-face { font-family: Dubai; src: url(/fonts/Dubai-Bold.woff2) format("woff2"); font-weight: 600 700; font-display: swap; }
+  :root {
+    --bg: #000; --card: #121212; --card2: #0a0a0a; --border: #242424; --track: #1f1f1f;
+    --blue: #3d8bff; --cyan: #36d3ff; --green: #2fd27a; --red: #ff5a5a;
+    --text: #f2f2f2; --text2: #8c8c8c; --muted: #4d4d4d;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 Dubai, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; }
+  body { padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin: 4px 2px 18px; }
+  header { align-items: center; }
+  .brand { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+  .brand svg { width: 28px; height: 28px; }
+  .brand b { color: var(--blue); font-weight: 600; }
+  .free { font-size: 13px; color: var(--text2); }
+
+  .drop { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 28px 16px; border-radius: 24px; text-align: center; cursor: pointer;
+    background: linear-gradient(180deg, #161616, #0b0b0b); border: 1px solid var(--border); }
+  .drop.over { border-color: var(--blue); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .send { display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; border-radius: 999px;
+    background: var(--blue); color: #fff; font-size: 17px; font-weight: 600; pointer-events: none; }
+  .hint { font-size: 13px; color: var(--text2); }
+
+  .note { margin-top: 12px; padding: 14px; border-radius: 24px; background: var(--card); border: 1px solid var(--border); }
+  .note textarea { width: 100%; min-height: 64px; resize: vertical; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border);
+    background: var(--card2); color: var(--text); font: inherit; }
+  .note textarea:focus { outline: none; border-color: var(--blue); }
+  .note .btns { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 10px; }
+  .note .status { flex: 1; font-size: 13px; color: var(--text2); }
+  .note .status.ok { color: var(--green); }
+  .note .status.err { color: var(--red); }
+  .note button { background: var(--blue); color: #fff; border: 0; border-radius: 999px; padding: 10px 22px; font: inherit; font-weight: 600; cursor: pointer; }
+  .note button:disabled { opacity: .5; }
+
+  .label { font-size: 17px; font-weight: 600; color: var(--text); margin: 26px 4px 10px; }
+
+  .queue .item { padding: 12px 16px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); margin-bottom: 8px; }
+  .queue .row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+  .queue .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .queue .pct { color: var(--text2); flex: none; font-variant-numeric: tabular-nums; }
+  .bar { height: 6px; border-radius: 3px; background: var(--track); margin-top: 8px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--cyan)); transition: width .2s; }
+  .item.done .bar > i { background: var(--green); }
+  .item.failed .bar > i { background: var(--red); }
+  .item.paused .bar > i { background: var(--muted); }
+  .item.paused .pct { color: var(--text2); }
+
+  .toolbar { display: flex; align-items: center; gap: 8px; margin: 26px 4px 10px; }
+  .crumbs { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 14px; min-width: 0; }
+  .crumbs button { background: none; border: 0; color: var(--text2); font: inherit; padding: 4px 2px; cursor: pointer; }
+  .crumbs button:last-child { color: var(--text); font-weight: 600; }
+  .crumbs span { color: var(--muted); }
+  .pill { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 999px;
+    padding: 8px 14px; font: inherit; font-size: 14px; cursor: pointer; flex: none; }
+
+  .list { border-radius: 20px; background: var(--card); border: 1px solid var(--border); overflow: hidden; }
+  .entry { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-top: 1px solid var(--border); }
+  .entry:first-child { border-top: 0; }
+  .icon { width: 42px; height: 42px; border-radius: 12px; flex: none; display: grid; place-items: center;
+    font-size: 10px; font-weight: 700; letter-spacing: .05em; color: #fff; }
+  .meta { flex: 1; min-width: 0; cursor: pointer; }
+  .meta .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* File names keep their own direction inside an Arabic page. */
+  .meta .n, .queue .name { unicode-bidi: plaintext; text-align: start; }
+  [dir=rtl] .meta .n, [dir=rtl] .queue .name { text-align: right; }
+  /* Arabic letters join, so no letter spacing there. */
+  [dir=rtl] .brand { direction: ltr; }
+  .meta .s { font-size: 12px; color: var(--text2); }
+  .act { background: none; border: 0; color: var(--text2); padding: 8px; cursor: pointer; border-radius: 10px; flex: none; }
+  .act svg { width: 20px; height: 20px; display: block; }
+  .act.confirm { color: var(--red); font-size: 13px; font-weight: 600; }
+  .empty { padding: 32px 16px; text-align: center; color: var(--text2); font-size: 14px; }
+
+  .error { margin-top: 40vh; transform: translateY(-50%); text-align: center; color: var(--text2); }
+  dialog { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 20px; padding: 20px; width: min(90vw, 360px); }
+  dialog::backdrop { background: rgba(0,0,0,.7); }
+  dialog input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--card2); color: var(--text); font: inherit; margin: 12px 0 16px; }
+  dialog .btns { display: flex; justify-content: flex-end; gap: 8px; }
+  dialog .primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header><div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="g" x1="20" y1="80" x2="80" y2="20" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#3d8bff"/><stop offset="1" stop-color="#36d3ff"/></linearGradient></defs><path d="M20.56 75A34 34 0 1 1 79.44 75" fill="none" stroke="url(#g)" stroke-width="14" stroke-linecap="round"/><path d="M55.66 63.66L71.21 36.79L44.34 52.34Z" fill="#fff"/><circle cx="50" cy="58" r="10" fill="#fff"/></svg><span>Motor<b>Dash</b></span></div><div class="free" id="free"></div></header>
+
+  <label class="drop" id="drop">
+    <input type="file" id="picker" multiple>
+    <span class="send">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      <span data-i18n="sendFiles">Send files to car</span>
+    </span>
+    <span class="hint" data-i18n="sendHint">APKs, photos, videos, music — anything</span>
+  </label>
+
+  <form class="note" id="note">
+    <textarea id="noteText" data-i18n-ph="notePlaceholder" placeholder="Send an address, link or note to the car screen" maxlength="4000"></textarea>
+    <div class="btns"><span class="status" id="noteStatus"></span><button id="noteSend" data-i18n="sendText">Send text</button></div>
+  </form>
+
+  <div id="queueWrap" hidden>
+    <div class="label" data-i18n="sending">Sending</div>
+    <div class="queue" id="queue"></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="crumbs" id="crumbs"></div>
+    <select class="pill" id="sort" aria-label="Sort">
+      <option value="newest" data-i18n="sortNewest">Newest</option>
+      <option value="name" data-i18n="sortName">Name</option>
+      <option value="size" data-i18n="sortSize">Size</option>
+    </select>
+    <button class="pill" id="mkdir" data-i18n="newFolder">New folder</button>
+  </div>
+  <div class="list" id="list"></div>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog">
+    <div data-i18n="newFolder">New folder</div>
+    <input id="dlgName" autocomplete="off" data-i18n-ph="folderName" placeholder="Folder name">
+    <div class="btns">
+      <button class="pill" value="cancel" data-i18n="cancel">Cancel</button>
+      <button class="pill primary" value="ok" data-i18n="create">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// ---------------------------------------------------------------- language
+// Follows the device's language. Arabic flips the page right-to-left.
+const STRINGS = {
+  en: {
+    sendFiles: 'Send files to car', sendHint: 'APKs, photos, videos, music — anything',
+    notePlaceholder: 'Send an address, link or note to the car screen', sendText: 'Send text',
+    sortNewest: 'Newest', sortName: 'Name', sortSize: 'Size',
+    sending: 'Sending', newFolder: 'New folder', folderName: 'Folder name', cancel: 'Cancel', create: 'Create',
+    free: s => s + ' free', empty: 'Nothing here yet', folder: 'Folder', carFiles: 'Car files', deleteQ: 'Delete?',
+    waiting: 'Waiting', sent: 'Sent', failed: 'Failed', reconnecting: 'Reconnecting…',
+    noteSending: 'Sending…', noteSent: 'Sent to the car screen', noteFailed: 'Not sent: ',
+    expired: 'Session expired.<br>Scan the QR code on the car screen again, or <a href="/">enter the PIN</a>.',
+  },
+  ar: {
+    sendFiles: 'إرسال ملفات إلى السيارة', sendHint: 'تطبيقات APK، صور، فيديو، موسيقى — أي شيء',
+    notePlaceholder: 'أرسل عنوانًا أو رابطًا أو ملاحظة إلى شاشة السيارة', sendText: 'إرسال نص',
+    sortNewest: 'الأحدث', sortName: 'الاسم', sortSize: 'الحجم',
+    sending: 'جارٍ الإرسال', newFolder: 'مجلد جديد', folderName: 'اسم المجلد', cancel: 'إلغاء', create: 'إنشاء',
+    free: s => ltr(s) + ' متاحة', empty: 'لا يوجد شيء هنا بعد', folder: 'مجلد', carFiles: 'ملفات السيارة', deleteQ: 'حذف؟',
+    waiting: 'بالانتظار', sent: 'تم الإرسال', failed: 'فشل', reconnecting: 'جارٍ إعادة الاتصال…',
+    noteSending: 'جارٍ الإرسال…', noteSent: 'تم الإرسال إلى شاشة السيارة', noteFailed: 'لم يُرسل: ',
+    expired: 'انتهت الجلسة.<br>امسح رمز QR على شاشة السيارة مرة أخرى، أو <a href="/">أدخل الرمز السري</a>.',
+  },
+};
+const LANG = /^ar\b/i.test(navigator.language || '') ? 'ar' : 'en';
+const T = STRINGS[LANG];
+// Keeps Latin bits (sizes) in their own order inside Arabic: "36 GB", not "GB 36".
+const ltr = s => '\u2066' + s + '\u2069';
+document.documentElement.lang = LANG;
+document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+document.querySelectorAll('[data-i18n]').forEach(e => { e.textContent = T[e.dataset.i18n]; });
+document.querySelectorAll('[data-i18n-ph]').forEach(e => { e.placeholder = T[e.dataset.i18nPh]; });
+
+let path = '';
+const queue = [];
+let busy = false;
+
+// Drop the token from the address bar; the server set an auth cookie.
+if (location.search) history.replaceState(null, '', '/');
+
+function fmtSize(n) {
+  const u = ['B', 'KB', 'MB', 'GB', 'TB']; let i = 0;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return (i ? n.toFixed(n < 10 ? 1 : 0) : n) + ' ' + u[i];
+}
+function fmtDate(ms) {
+  return new Date(ms).toLocaleString(LANG === 'ar' ? 'ar-u-nu-latn' : undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+const KINDS = [
+  [/^(jpe?g|png|gif|webp|heic|bmp)$/, '#2fa8ff'],
+  [/^(mp4|mkv|mov|avi|webm|m4v)$/, '#a46bff'],
+  [/^(mp3|flac|wav|m4a|aac|ogg|opus)$/, '#ff8a3d'],
+  [/^apk$/, '#2fd27a'],
+  [/^(pdf|txt|docx?|xlsx?|pptx?)$/, '#ff5a7a'],
+  [/^(zip|rar|7z|tar|gz)$/, '#e0b030'],
+];
+function icon(e) {
+  const d = document.createElement('div'); d.className = 'icon';
+  if (e.dir) {
+    d.style.background = '#1d2a44';
+    d.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="#3d8bff"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+    return d;
+  }
+  const ext = e.name.includes('.') ? e.name.split('.').pop().toLowerCase() : '';
+  d.style.background = (KINDS.find(([re]) => re.test(ext)) || [0, '#3a3a3a'])[1];
+  d.textContent = ext.slice(0, 4).toUpperCase() || 'FILE';
+  return d;
+}
+
+async function api(url, opts) {
+  const r = await fetch(url, opts);
+  if (r.status === 401) { showAuthError(); throw new Error('unauthorized'); }
+  if (!r.ok) throw new Error(await r.text());
+  return r;
+}
+function showAuthError() {
+  $('app').innerHTML = '<div class="error">' + T.expired + '</div>';
+}
+
+// p === null: let the server pick the home folder.
+async function load(p = path) {
+  const data = await (await api('/api/list' + (p === null ? '' : '?path=' + encodeURIComponent(p)))).json();
+  path = data.path;
+  $('free').textContent = T.free(fmtSize(data.free));
+  renderCrumbs();
+  sortEntries(data.entries);
+  const list = $('list'); list.innerHTML = '';
+  if (!data.entries.length) {
+    list.innerHTML = '<div class="empty"></div>';
+    list.firstChild.textContent = T.empty;
+    return;
+  }
+  for (const e of data.entries) {
+    const full = path ? path + '/' + e.name : e.name;
+    const row = document.createElement('div'); row.className = 'entry';
+    row.appendChild(icon(e));
+    const meta = document.createElement('div'); meta.className = 'meta';
+    meta.innerHTML = '<div class="n"></div><div class="s"></div>';
+    meta.firstChild.textContent = e.name;
+    meta.lastChild.textContent = e.dir ? T.folder : ltr(fmtSize(e.size)) + ' · ' + fmtDate(e.modified);
+    meta.onclick = () => e.dir ? load(full) : download(full);
+    row.appendChild(meta);
+    if (!e.dir) row.appendChild(button(
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 10l6 6 6-6M5 20h14"/></svg>',
+      () => download(full)));
+    const del = button(
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+      async () => {
+        if (!del.classList.contains('confirm')) {
+          del.classList.add('confirm'); del.textContent = T.deleteQ;
+          setTimeout(() => load().catch(() => {}), 3000);
+          return;
+        }
+        await api('/api/delete?path=' + encodeURIComponent(full), { method: 'DELETE' });
+        load();
+      });
+    row.appendChild(del);
+    list.appendChild(row);
+  }
+}
+// Folders first, then newest / name / size, like the car screen. The choice is remembered here.
+let sortBy = 'newest';
+try { sortBy = localStorage.getItem('sort') || sortBy; } catch (e) {}
+$('sort').value = sortBy;
+$('sort').onchange = e => {
+  sortBy = e.target.value;
+  try { localStorage.setItem('sort', sortBy); } catch (err) {}
+  load().catch(() => {});
+};
+function sortEntries(entries) {
+  const byName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true });
+  entries.sort((a, b) => (b.dir - a.dir) || (
+    sortBy === 'name' ? byName(a, b)
+      : sortBy === 'size' ? (b.size - a.size) || byName(a, b)
+      : (b.modified - a.modified) || byName(a, b)));
+}
+function button(svg, onclick) {
+  const b = document.createElement('button'); b.className = 'act'; b.innerHTML = svg; b.onclick = onclick; return b;
+}
+function renderCrumbs() {
+  const c = $('crumbs'); c.innerHTML = '';
+  const parts = path ? path.split('/') : [];
+  const add = (label, p) => {
+    const b = document.createElement('button'); b.textContent = label; b.onclick = () => load(p); c.appendChild(b);
+  };
+  add(T.carFiles, '');
+  parts.forEach((name, i) => {
+    const s = document.createElement('span'); s.textContent = '/'; c.appendChild(s);
+    add(name, parts.slice(0, i + 1).join('/'));
+  });
+}
+function download(full) {
+  location.href = '/api/download?path=' + encodeURIComponent(full);
+}
+
+// ---------------------------------------------------------------- uploads
+
+function enqueue(files) {
+  $('queueWrap').hidden = false;
+  for (const file of files) {
+    const el = document.createElement('div'); el.className = 'item';
+    el.innerHTML = '<div class="row"><span class="name"></span><span class="pct"></span></div><div class="bar"><i></i></div>';
+    el.querySelector('.name').textContent = file.name;
+    el.querySelector('.pct').textContent = T.waiting;
+    $('queue').appendChild(el);
+    queue.push({ file, el, dir: path });
+  }
+  pump();
+}
+// Uploads resume after a dropped connection (e.g. the hotspot blinks): the car keeps what
+// arrived, we ask how much that is and send the rest. The id is stable per file, so picking
+// the same file again after reloading this page resumes too.
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const RETRY_FOR_MS = 10 * 60 * 1000;
+const STALL_MS = 20000; // no progress this long = connection is dead
+
+function uploadId(file, dir) {
+  let h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (const ch of [dir, file.name, file.size, file.lastModified].join('|')) {
+    const c = ch.charCodeAt(0);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ c, 0x5bd1e995) >>> 0;
+  }
+  return 'u' + h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0');
+}
+
+class Fatal extends Error {}
+
+// Sends file bytes from `offset`. Resolves when the car has the whole file.
+function putFrom(item, id, offset, show) {
+  const { file, dir } = item;
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', '/api/upload?path=' + encodeURIComponent(dir) + '&name=' + encodeURIComponent(file.name) +
+      '&id=' + id + '&offset=' + offset + '&total=' + file.size);
+    let stall;
+    const watchdog = () => { clearTimeout(stall); stall = setTimeout(() => xhr.abort(), STALL_MS); };
+    xhr.upload.onprogress = e => { watchdog(); show(offset + e.loaded); };
+    xhr.onload = () => {
+      clearTimeout(stall);
+      if (xhr.status === 200) resolve();
+      else if (xhr.status === 401) { showAuthError(); reject(new Fatal('unauthorized')); }
+      else if (xhr.status === 409 || xhr.status >= 500) reject(new Error('retry'));
+      else reject(new Fatal(xhr.responseText || 'HTTP ' + xhr.status));
+    };
+    xhr.onerror = xhr.onabort = () => { clearTimeout(stall); reject(new Error('network')); };
+    watchdog();
+    xhr.send(file.slice(offset));
+  });
+}
+
+async function send(item, show, reconnecting) {
+  const id = uploadId(item.file, item.dir);
+  const deadline = Date.now() + RETRY_FOR_MS;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const st = await (await api('/api/upload/status?path=' + encodeURIComponent(item.dir) + '&id=' + id)).json();
+      await putFrom(item, id, st.received, show);
+      return;
+    } catch (e) {
+      if (e instanceof Fatal || e.message === 'unauthorized' || Date.now() > deadline) throw e;
+      reconnecting();
+      await sleep(Math.min(1000 * 2 ** attempt, 10000));
+    }
+  }
+}
+
+async function pump() {
+  if (busy || !queue.length) return;
+  busy = true;
+  const item = queue.shift();
+  const { file, el } = item;
+  const pct = el.querySelector('.pct'), bar = el.querySelector('.bar > i');
+  const show = sent => {
+    const p = file.size ? Math.round(sent / file.size * 100) : 100;
+    bar.style.width = p + '%'; pct.textContent = p + '%';
+    el.classList.remove('paused');
+  };
+  let ok = false;
+  try {
+    await send(item, show, () => { el.classList.add('paused'); pct.textContent = T.reconnecting; });
+    ok = true;
+  } catch (e) {
+    console.warn('upload failed', e);
+  }
+  el.classList.remove('paused');
+  el.classList.add(ok ? 'done' : 'failed');
+  bar.style.width = '100%';
+  pct.textContent = ok ? T.sent : T.failed;
+  busy = false;
+  if (ok) setTimeout(() => { el.remove(); if (!$('queue').children.length) $('queueWrap').hidden = true; }, 4000);
+  load().catch(() => {});
+  pump();
+}
+
+$('picker').onchange = e => { enqueue(e.target.files); e.target.value = ''; };
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => enqueue(e.dataTransfer.files));
+
+$('mkdir').onclick = () => { $('dlgName').value = ''; $('dlg').showModal(); };
+$('dlg').addEventListener('close', async () => {
+  const name = $('dlgName').value.trim();
+  if ($('dlg').returnValue !== 'ok' || !name) return;
+  await api('/api/mkdir?path=' + encodeURIComponent(path) + '&name=' + encodeURIComponent(name), { method: 'POST' });
+  load();
+});
+
+$('note').onsubmit = async e => {
+  e.preventDefault();
+  const text = $('noteText').value.trim(), status = $('noteStatus');
+  if (!text) return;
+  $('noteSend').disabled = true; status.className = 'status'; status.textContent = T.noteSending;
+  try {
+    await api('/api/text', { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8' }, body: text });
+    $('noteText').value = ''; status.className = 'status ok'; status.textContent = T.noteSent;
+  } catch (err) {
+    status.className = 'status err'; status.textContent = T.noteFailed + err.message;
+  } finally {
+    $('noteSend').disabled = false;
+  }
+};
+
+// Heartbeat: lets the car show "device connected" while this page is open.
+const ping = () => { if (!document.hidden) fetch('/api/ping').catch(() => {}); };
+setInterval(ping, 15000);
+document.addEventListener('visibilitychange', ping);
+ping();
+
+load(null).catch(() => {});
+</script>
+</body>
+</html>
